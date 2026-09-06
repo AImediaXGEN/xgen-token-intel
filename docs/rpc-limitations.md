@@ -4,7 +4,7 @@
 
 `getTokenLargestAccounts` returns token accounts, not unique human holders. A single wallet can control multiple token accounts, and some token accounts may be owned by programs, exchanges, custodians, escrow contracts, or liquidity pools.
 
-For that reason, M1 does not present top accounts as top holders.
+For that reason, M2 does not present top accounts as top holders.
 
 ## Owner Resolution
 
@@ -16,8 +16,12 @@ Token supply is read from standard RPC. Supply can be affected by decimals and d
 
 ## Parsed Account Data
 
-M1 relies on `getParsedAccountInfo` and `getTokenSupply`. RPC providers may differ in availability, rate limits, and error messages. The app should surface RPC errors without converting them into token-risk conclusions.
+M2 relies on `getParsedAccountInfo` and `getTokenSupply`. RPC providers may differ in parsed Token-2022 extension support, availability, rate limits, and error messages. The app should surface RPC errors without converting them into token-risk conclusions.
 
 ## Token Program Support
 
-M1 recognizes the legacy SPL Token Program and Token-2022. Unknown account owners are reported as unsupported rather than forced into a token interpretation.
+M2 recognizes the legacy SPL Token Program and Token-2022. Unknown account owners are reported as unsupported rather than forced into a token interpretation.
+
+## Token-2022 Extensions
+
+Token-2022 extensions store specialized state beyond base mint fields. M2 detects parsed extension names and selected parsed authority fields when RPC provides them. Extension surfaces not parsed by M2 are reported as uninspected rather than absent because M2 does not perform comprehensive binary TLV extension decoding. Revoked mint and freeze authorities must not be interpreted as comprehensive low authority risk for Token-2022 tokens.

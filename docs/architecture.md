@@ -26,25 +26,24 @@ No paid APIs or third-party token-risk APIs are included in V1.
 ## Module Boundaries
 
 - `src/lib/solana`: Solana RPC configuration, read-only client creation, token program IDs, and low-level account fetching.
-- `src/lib/intel`: application data schemas, mint analysis, observable risk signals, and transparent scoring.
+- `src/lib/intel`: application data schemas, mint analysis, authority analysis, observable risk signals, and transparent scoring.
 - `src/app/api`: server routes that expose analysis results to the UI without exposing RPC implementation details.
 - `src/components`: presentation components only.
-- `docs`: architecture, data model, scoring method, RPC limitations, and milestone plan.
+- `docs`: architecture, data model, authority model, scoring method, RPC limitations, and milestone plan.
 
 ## Provider Model
 
-The analysis layer should accept provider-shaped inputs instead of hard-coding every source into UI components. M1 uses standard Solana RPC only. Future providers can add metadata, liquidity, governance, or historical behavior later, but each provider must preserve the read-only boundary and clearly identify its data source.
+The analysis layer should accept provider-shaped inputs instead of hard-coding every source into UI components. M2 uses standard Solana RPC only. Future providers can add metadata, liquidity, governance, historical behavior, or binary Token-2022 extension decoding later, but each provider must preserve the read-only boundary and clearly identify its data source.
 
-## M1 Scope
+## M2 Scope
 
-M1 implements:
+M2 implements:
 
-- Mint address syntax validation.
-- Read-only RPC connection.
-- Mint account lookup.
-- Token program identification for SPL Token and Token-2022.
-- Parsed mint inspection for decimals, supply, mint authority, and freeze authority when RPC returns parsed mint data.
-- A transparent M1 report shape.
-- A scoring engine scaffold that returns documented, observable adjustments only.
+- Factual standard mint authority and freeze authority explanations.
+- Observable authority-related signals.
+- Token-2022 classification.
+- Token-2022 extension authority inventory.
+- Parsed Token-2022 extension authority field reporting when standard RPC exposes those fields.
+- Explicit Token-2022 limitations so revoked standard authorities are not treated as comprehensive low authority risk.
 
-M1 does not implement holder concentration, authority risk scoring, UI polish beyond a usable foundation, or public GitHub release.
+M2 does not implement holder concentration, market data, liquidity analysis, LP analysis, final scoring methodology, wallet connectivity, transaction signing, blockchain writes, or public GitHub release.

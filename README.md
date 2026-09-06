@@ -4,14 +4,16 @@ Read-only Solana token intelligence for the XGENVERSE / XGEN "Decentralize Every
 
 Core philosophy: **Don't trust. Verify.**
 
-## M1 Scope
+## Current Scope
 
-M1 provides a standalone Next.js foundation and read-only mint inspection:
+M2 provides a standalone Next.js foundation and read-only authority inspection:
 
 - Validates Solana mint address syntax.
 - Reads observable mint account data through Solana RPC.
 - Identifies legacy SPL Token and Token-2022 mint accounts.
 - Displays decimals, supply, mint authority, and freeze authority when parsed RPC data is available.
+- Explains standard mint authority and freeze authority in factual language.
+- Flags Token-2022 extension authority surfaces as a required limitation unless comprehensively inspected.
 - Preserves clear product boundaries: no wallet connection, no signing, no transactions, no swaps, no custody, no safe/scam verdicts.
 
 ## Development
@@ -36,6 +38,7 @@ cp .env.example .env.local
 - [Architecture](docs/architecture.md)
 - [Data model](docs/data-model.md)
 - [Analysis result schema](docs/analysis-result-schema.md)
+- [Authority analysis](docs/authority-analysis.md)
 - [Scoring](docs/scoring.md)
 - [RPC limitations](docs/rpc-limitations.md)
 - [Milestones](docs/milestones.md)

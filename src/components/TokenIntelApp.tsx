@@ -1,7 +1,12 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import type { AnalysisResult, ObservableSignal } from "@/lib/intel/schemas";
+import type {
+  AnalysisResult,
+  AuthorityObservation,
+  ObservableSignal,
+  Token2022ExtensionAuthority,
+} from "@/lib/intel/schemas";
 
 const sampleMint = "So11111111111111111111111111111111111111112";
 
@@ -24,6 +29,49 @@ function Field({ label, value }: { label: string; value: string }) {
       <dt className="text-sm font-medium text-slate-500">{label}</dt>
       <dd className="mt-1 break-words font-mono text-sm text-slate-950">{value}</dd>
     </div>
+  );
+}
+
+function AuthorityCard({ authority }: { authority: AuthorityObservation }) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="font-semibold text-slate-950">{authority.label}</h3>
+        <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-700">
+          {authority.status}
+        </span>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-slate-700">{authority.permits}</p>
+      <p className="mt-3 break-words font-mono text-xs text-slate-600">
+        Address: {authority.address ?? "None observed"}
+      </p>
+      <p className="mt-1 break-words font-mono text-xs text-slate-500">Source: {authority.source}</p>
+    </section>
+  );
+}
+
+function Token2022ExtensionCard({ extension }: { extension: Token2022ExtensionAuthority }) {
+  return (
+    <section className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="font-semibold">{extension.label}</h3>
+        <span className="text-xs font-semibold uppercase tracking-[0.14em]">{extension.status}</span>
+      </div>
+      <p className="mt-2 text-sm leading-6">{extension.explanation}</p>
+      {extension.authorityFields.length > 0 ? (
+        <dl className="mt-3 space-y-2">
+          {extension.authorityFields.map((field) => (
+            <div key={field.field}>
+              <dt className="text-xs font-semibold uppercase tracking-[0.14em]">{field.field}</dt>
+              <dd className="break-words font-mono text-xs">{field.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="mt-3 text-sm">No parsed authority field was available for this extension in the M2 response.</p>
+      )}
+      <p className="mt-3 break-words font-mono text-xs opacity-80">Source: {extension.source}</p>
+    </section>
   );
 }
 
@@ -58,6 +106,11 @@ export function TokenIntelApp() {
     }
   }
 
+  const detectedToken2022Extensions =
+    result?.authorityAnalysis?.token2022Extensions.filter(
+      (extension) => extension.status === "detected",
+    ) ?? [];
+
   return (
     <main className="min-h-screen bg-[#f7f3ea] text-slate-950">
       <section className="border-b border-slate-200 bg-white">
@@ -70,7 +123,7 @@ export function TokenIntelApp() {
               XGEN Token Intel
             </h1>
             <p className="mt-4 text-lg leading-8 text-slate-700">
-              Paste a Solana token mint address and verify observable mint characteristics from read-only RPC data.
+              Paste a Solana token mint address and verify observable authority characteristics from read-only RPC data.
             </p>
           </div>
           <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row">
@@ -103,7 +156,7 @@ export function TokenIntelApp() {
             <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">M1 report</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">M2 report</p>
                   <h2 className="mt-1 text-2xl font-semibold text-slate-950">{result.summary}</h2>
                 </div>
                 <span className="rounded-md border border-slate-200 px-3 py-1 text-sm font-medium text-slate-700">
@@ -118,15 +171,44 @@ export function TokenIntelApp() {
                 <Field label="Decimals" value={result.mint?.decimals?.toString() ?? "Not available"} />
                 <Field label="Raw supply" value={result.mint?.supply?.rawAmount ?? "Not available"} />
                 <Field label="UI supply" value={result.mint?.supply?.uiAmountString ?? "Not available"} />
-                <Field label="Mint authority" value={result.mint?.mintAuthority ?? "Revoked or unavailable"} />
-                <Field label="Freeze authority" value={result.mint?.freezeAuthority ?? "Revoked or unavailable"} />
               </dl>
             </article>
           ) : (
             <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-slate-700">
-              Enter a Solana token mint address to generate the first read-only M1 inspection report.
+              Enter a Solana token mint address to generate the read-only M2 authority inspection report.
             </div>
           )}
+
+          {result?.authorityAnalysis ? (
+            <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-950">Authority Analysis</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">{result.authorityAnalysis.summary}</p>
+              <div className="mt-4 grid gap-3">
+                {result.authorityAnalysis.standardAuthorities.map((authority) => (
+                  <AuthorityCard key={authority.id} authority={authority} />
+                ))}
+              </div>
+              {result.authorityAnalysis.scope === "token-2022" ? (
+                <div className="mt-5">
+                  <h3 className="text-lg font-semibold text-slate-950">Token-2022 Extension Authority Surfaces</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    M2 does not treat absent or unparsed extension data as evidence of low authority risk.
+                  </p>
+                  <div className="mt-4 grid gap-3">
+                    {detectedToken2022Extensions.length > 0 ? (
+                      detectedToken2022Extensions.map((extension) => (
+                        <Token2022ExtensionCard key={extension.extension} extension={extension} />
+                      ))
+                    ) : (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                        No Token-2022 authority-bearing extension fields were parsed by M2 from RPC in this response. This is not an absence or safety claim.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </article>
+          ) : null}
 
           {result ? (
             <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -145,7 +227,7 @@ export function TokenIntelApp() {
                     </section>
                   ))
                 ) : (
-                  <p className="text-slate-700">No M1 observable authority signals were produced for this response.</p>
+                  <p className="text-slate-700">No M2 observable authority signals were produced for this response.</p>
                 )}
               </div>
             </article>
@@ -161,7 +243,7 @@ export function TokenIntelApp() {
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-700">
               {result?.score.methodology ??
-                "M1 uses a documented baseline score. Later milestones add explicit observable adjustments."}
+                "M2 keeps the M1 baseline score. M4 will add explicit observable adjustments."}
             </p>
             <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
               Score adjustments: {result?.score.adjustments.length ?? 0}

@@ -1,8 +1,9 @@
 import type { AccountInfo, ParsedAccountData } from "@solana/web3.js";
 import { identifyTokenProgram, type SupportedTokenProgram } from "@/lib/solana/constants";
 import { createReadOnlyConnection, parseSolanaPublicKey } from "@/lib/solana/rpc";
+import { buildAuthorityAnalysis, buildAuthoritySignals } from "./authorityAnalysis";
 import { calculateM1Score } from "./scoring";
-import type { AnalysisResult, ConcentrationReport, MintInspection, ObservableSignal } from "./schemas";
+import type { AnalysisResult, ConcentrationReport, MintInspection } from "./schemas";
 
 const concentrationNotImplemented: ConcentrationReport = {
   status: "not-implemented-m1",
@@ -11,27 +12,34 @@ const concentrationNotImplemented: ConcentrationReport = {
   top10TokenAccountConcentration: null,
   top20TokenAccountConcentration: null,
   note:
-    "M1 does not report holder concentration. Solana RPC largest-token-account results are token accounts, not unique human holders.",
+    "M2 does not report holder concentration. Solana RPC largest-token-account results are token accounts, not unique human holders.",
 };
 
 const baseLimitations = [
-  "M1 uses standard read-only Solana RPC only.",
+  "M2 uses standard read-only Solana RPC only.",
   "Largest token accounts and concentration metrics are reserved for M3 to avoid mislabeling token accounts as unique holders.",
   "This report does not classify a token as safe, unsafe, or malicious.",
+  "The XGEN Intel Score remains the M1 baseline until the M4 scoring methodology milestone.",
 ];
+
+type ParsedTokenExtension = {
+  extension: string;
+  state?: Record<string, unknown>;
+};
 
 type ParsedMintInfo = {
   decimals?: number;
   supply?: string;
   mintAuthority?: string | null;
   freezeAuthority?: string | null;
+  extensions?: ParsedTokenExtension[];
 };
 
 function isParsedAccountData(data: AccountInfo<Buffer | ParsedAccountData>["data"]): data is ParsedAccountData {
   return !Buffer.isBuffer(data) && typeof data === "object" && "parsed" in data;
 }
 
-function getParsedMintInfo(account: AccountInfo<Buffer | ParsedAccountData>): ParsedMintInfo | null {
+export function getParsedMintInfo(account: AccountInfo<Buffer | ParsedAccountData>): ParsedMintInfo | null {
   if (!isParsedAccountData(account.data)) {
     return null;
   }
@@ -44,54 +52,27 @@ function getParsedMintInfo(account: AccountInfo<Buffer | ParsedAccountData>): Pa
   return parsed.info as ParsedMintInfo;
 }
 
-function authoritySignals(mint: MintInspection): ObservableSignal[] {
-  const signals: ObservableSignal[] = [];
-
-  if (mint.mintAuthorityRevoked === true) {
-    signals.push({
-      id: "mint-authority-revoked-observed",
-      label: "Mint authority revoked",
-      severity: "positive",
-      condition: "Parsed mint data reports no mint authority.",
-      whyItMatters:
-        "A revoked mint authority means the standard token program no longer allows additional supply to be minted through that authority.",
-      source: "getParsedAccountInfo.parsed.info.mintAuthority",
-    });
-  } else if (mint.mintAuthorityRevoked === false) {
-    signals.push({
-      id: "mint-authority-active-observed",
-      label: "Mint authority active",
-      severity: "caution",
-      condition: "Parsed mint data reports an active mint authority.",
-      whyItMatters:
-        "An active mint authority can allow additional token supply to be minted, depending on token program rules and authority control.",
-      source: "getParsedAccountInfo.parsed.info.mintAuthority",
-    });
-  }
-
-  if (mint.freezeAuthorityRevoked === true) {
-    signals.push({
-      id: "freeze-authority-revoked-observed",
-      label: "Freeze authority revoked",
-      severity: "positive",
-      condition: "Parsed mint data reports no freeze authority.",
-      whyItMatters:
-        "A revoked freeze authority means the standard token program no longer allows token accounts to be frozen through that authority.",
-      source: "getParsedAccountInfo.parsed.info.freezeAuthority",
-    });
-  } else if (mint.freezeAuthorityRevoked === false) {
-    signals.push({
-      id: "freeze-authority-active-observed",
-      label: "Freeze authority active",
-      severity: "caution",
-      condition: "Parsed mint data reports an active freeze authority.",
-      whyItMatters:
-        "A freeze authority can freeze token accounts under standard token program rules. This does not prove malicious intent, but it is important to verify.",
-      source: "getParsedAccountInfo.parsed.info.freezeAuthority",
-    });
-  }
-
-  return signals;
+function emptyResult(
+  input: string,
+  generatedAt: string,
+  status: AnalysisResult["status"],
+  summary: string,
+  mintAddress: string | null,
+): AnalysisResult {
+  return {
+    version: "m2",
+    generatedAt,
+    input,
+    mintAddress,
+    status,
+    summary,
+    mint: null,
+    authorityAnalysis: null,
+    concentration: concentrationNotImplemented,
+    score: calculateM1Score(null),
+    riskSignals: [],
+    limitations: baseLimitations,
+  };
 }
 
 export async function analyzeMintAddress(input: string): Promise<AnalysisResult> {
@@ -99,19 +80,13 @@ export async function analyzeMintAddress(input: string): Promise<AnalysisResult>
   const generatedAt = new Date().toISOString();
 
   if (!publicKey) {
-    return {
-      version: "m1",
-      generatedAt,
+    return emptyResult(
       input,
-      mintAddress: null,
-      status: "invalid-address",
-      summary: "The input is not a valid canonical Solana public key.",
-      mint: null,
-      concentration: concentrationNotImplemented,
-      score: calculateM1Score(null),
-      riskSignals: [],
-      limitations: baseLimitations,
-    };
+      generatedAt,
+      "invalid-address",
+      "The input is not a valid canonical Solana public key.",
+      null,
+    );
   }
 
   try {
@@ -127,19 +102,13 @@ export async function analyzeMintAddress(input: string): Promise<AnalysisResult>
 
     const account = accountResponse.value.value;
     if (!account) {
-      return {
-        version: "m1",
-        generatedAt,
+      return emptyResult(
         input,
-        mintAddress: publicKey.toBase58(),
-        status: "not-found",
-        summary: "No account was found at this address on the selected Solana RPC endpoint.",
-        mint: null,
-        concentration: concentrationNotImplemented,
-        score: calculateM1Score(null),
-        riskSignals: [],
-        limitations: baseLimitations,
-      };
+        generatedAt,
+        "not-found",
+        "No account was found at this address on the selected Solana RPC endpoint.",
+        publicKey.toBase58(),
+      );
     }
 
     const tokenProgram: SupportedTokenProgram = identifyTokenProgram(account.owner);
@@ -170,16 +139,26 @@ export async function analyzeMintAddress(input: string): Promise<AnalysisResult>
       freezeAuthorityRevoked: parsedMintInfo ? parsedMintInfo.freezeAuthority == null : null,
     };
 
+    const authorityAnalysis = buildAuthorityAnalysis({
+      tokenProgram,
+      mintAuthority: mint.mintAuthority,
+      mintAuthorityRevoked: mint.mintAuthorityRevoked,
+      freezeAuthority: mint.freezeAuthority,
+      freezeAuthorityRevoked: mint.freezeAuthorityRevoked,
+      extensions: parsedMintInfo?.extensions,
+    });
+
     if (tokenProgram === "unknown" || !parsedMintInfo) {
       return {
-        version: "m1",
+        version: "m2",
         generatedAt,
         input,
         mintAddress: publicKey.toBase58(),
         status: "unsupported-account",
         summary:
-          "The account exists, but M1 could not verify it as a parsed SPL Token or Token-2022 mint account.",
+          "The account exists, but M2 could not verify it as a parsed SPL Token or Token-2022 mint account.",
         mint,
+        authorityAnalysis,
         concentration: concentrationNotImplemented,
         score: calculateM1Score(mint),
         riskSignals: [],
@@ -191,36 +170,28 @@ export async function analyzeMintAddress(input: string): Promise<AnalysisResult>
     }
 
     return {
-      version: "m1",
+      version: "m2",
       generatedAt,
       input,
       mintAddress: publicKey.toBase58(),
       status: "ok",
-      summary: "Read-only mint inspection completed from observable Solana RPC data.",
+      summary: "Read-only authority inspection completed from observable Solana RPC data.",
       mint,
+      authorityAnalysis,
       concentration: concentrationNotImplemented,
       score: calculateM1Score(mint),
-      riskSignals: authoritySignals(mint),
-      limitations: baseLimitations,
+      riskSignals: buildAuthoritySignals(mint),
+      limitations: [...baseLimitations, ...authorityAnalysis.limitations],
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown RPC error";
 
-    return {
-      version: "m1",
-      generatedAt,
+    return emptyResult(
       input,
-      mintAddress: publicKey.toBase58(),
-      status: "rpc-error",
-      summary: `RPC request failed: ${message}`,
-      mint: null,
-      concentration: concentrationNotImplemented,
-      score: calculateM1Score(null),
-      riskSignals: [],
-      limitations: [
-        ...baseLimitations,
-        "RPC failures are infrastructure errors, not token-risk conclusions.",
-      ],
-    };
+      generatedAt,
+      "rpc-error",
+      `RPC request failed: ${message}`,
+      publicKey.toBase58(),
+    );
   }
 }
