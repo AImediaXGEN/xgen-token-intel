@@ -1,0 +1,192 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import type { AnalysisResult, ObservableSignal } from "@/lib/intel/schemas";
+
+const sampleMint = "So11111111111111111111111111111111111111112";
+
+function signalStyle(severity: ObservableSignal["severity"]): string {
+  switch (severity) {
+    case "positive":
+      return "border-emerald-200 bg-emerald-50 text-emerald-950";
+    case "caution":
+      return "border-amber-200 bg-amber-50 text-amber-950";
+    case "risk":
+      return "border-red-200 bg-red-50 text-red-950";
+    default:
+      return "border-slate-200 bg-slate-50 text-slate-950";
+  }
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-b border-slate-200 py-3 last:border-b-0">
+      <dt className="text-sm font-medium text-slate-500">{label}</dt>
+      <dd className="mt-1 break-words font-mono text-sm text-slate-950">{value}</dd>
+    </div>
+  );
+}
+
+export function TokenIntelApp() {
+  const [mintAddress, setMintAddress] = useState("");
+  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mintAddress }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Analysis request failed.");
+      }
+
+      setResult((await response.json()) as AnalysisResult);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unknown error");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f7f3ea] text-slate-950">
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 sm:px-8 lg:px-10">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              XGENVERSE / XGEN
+            </p>
+            <h1 className="mt-3 text-4xl font-semibold leading-tight text-slate-950 sm:text-5xl">
+              XGEN Token Intel
+            </h1>
+            <p className="mt-4 text-lg leading-8 text-slate-700">
+              Paste a Solana token mint address and verify observable mint characteristics from read-only RPC data.
+            </p>
+          </div>
+          <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row">
+            <label className="sr-only" htmlFor="mint-address">
+              Solana mint address
+            </label>
+            <input
+              id="mint-address"
+              value={mintAddress}
+              onChange={(event) => setMintAddress(event.target.value)}
+              placeholder={sampleMint}
+              className="min-h-12 flex-1 rounded-md border border-slate-300 bg-white px-4 font-mono text-sm outline-none ring-emerald-500 transition focus:ring-2"
+            />
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="min-h-12 rounded-md bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              {isLoading ? "Analyzing" : "Analyze Mint"}
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section className="mx-auto grid max-w-6xl gap-6 px-5 py-8 sm:px-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-10">
+        <div className="space-y-6">
+          {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-950">{error}</div> : null}
+
+          {result ? (
+            <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">M1 report</p>
+                  <h2 className="mt-1 text-2xl font-semibold text-slate-950">{result.summary}</h2>
+                </div>
+                <span className="rounded-md border border-slate-200 px-3 py-1 text-sm font-medium text-slate-700">
+                  {result.status}
+                </span>
+              </div>
+
+              <dl className="mt-5 divide-y divide-slate-200">
+                <Field label="Input" value={result.input} />
+                <Field label="Canonical mint address" value={result.mintAddress ?? "Not available"} />
+                <Field label="Token program" value={result.mint?.tokenProgram ?? "Not available"} />
+                <Field label="Decimals" value={result.mint?.decimals?.toString() ?? "Not available"} />
+                <Field label="Raw supply" value={result.mint?.supply?.rawAmount ?? "Not available"} />
+                <Field label="UI supply" value={result.mint?.supply?.uiAmountString ?? "Not available"} />
+                <Field label="Mint authority" value={result.mint?.mintAuthority ?? "Revoked or unavailable"} />
+                <Field label="Freeze authority" value={result.mint?.freezeAuthority ?? "Revoked or unavailable"} />
+              </dl>
+            </article>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-slate-700">
+              Enter a Solana token mint address to generate the first read-only M1 inspection report.
+            </div>
+          )}
+
+          {result ? (
+            <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-950">Observable Signals</h2>
+              <div className="mt-4 grid gap-3">
+                {result.riskSignals.length > 0 ? (
+                  result.riskSignals.map((signal) => (
+                    <section key={signal.id} className={`rounded-lg border p-4 ${signalStyle(signal.severity)}`}>
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <h3 className="font-semibold">{signal.label}</h3>
+                        <span className="text-xs font-semibold uppercase tracking-[0.14em]">{signal.severity}</span>
+                      </div>
+                      <p className="mt-2 text-sm leading-6">{signal.condition}</p>
+                      <p className="mt-2 text-sm leading-6">{signal.whyItMatters}</p>
+                      <p className="mt-3 break-words font-mono text-xs opacity-80">Source: {signal.source}</p>
+                    </section>
+                  ))
+                ) : (
+                  <p className="text-slate-700">No M1 observable authority signals were produced for this response.</p>
+                )}
+              </div>
+            </article>
+          ) : null}
+        </div>
+
+        <aside className="space-y-6">
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">XGEN Intel Score</h2>
+            <div className="mt-4 flex items-end gap-2">
+              <span className="text-5xl font-semibold">{result?.score.value ?? 50}</span>
+              <span className="pb-2 text-slate-500">/ 100</span>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-slate-700">
+              {result?.score.methodology ??
+                "M1 uses a documented baseline score. Later milestones add explicit observable adjustments."}
+            </p>
+            <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+              Score adjustments: {result?.score.adjustments.length ?? 0}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Concentration</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-700">
+              {result?.concentration.note ??
+                "M3 will implement carefully labeled token-account concentration analysis."}
+            </p>
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Boundaries</h2>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+              <li>No wallet connection.</li>
+              <li>No signing or transactions.</li>
+              <li>No swaps, trading, custody, or locking.</li>
+              <li>No safe/scam verdicts.</li>
+            </ul>
+          </section>
+        </aside>
+      </section>
+    </main>
+  );
+}
