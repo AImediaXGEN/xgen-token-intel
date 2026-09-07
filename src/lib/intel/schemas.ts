@@ -77,17 +77,59 @@ export const authorityAnalysisSchema = z.object({
   limitations: z.array(z.string()),
 });
 
+export const concentrationTokenAccountSchema = z.object({
+  tokenAccountAddress: z.string(),
+  rawAmount: z.string(),
+  uiAmountString: z.string().nullable(),
+  decimals: z.number().int().min(0),
+  percentOfSupply: z.string().nullable(),
+  ownerAddress: z.string().nullable().optional(),
+  resolutionStatus: z.enum(["resolved", "unresolved"]),
+});
+
+export const concentrationOwnerSchema = z.object({
+  ownerAddress: z.string(),
+  rawAmount: z.string(),
+  tokenAccountCount: z.number().int().min(1),
+  percentOfSupply: z.string().nullable(),
+});
+
 export const concentrationReportSchema = z.object({
-  status: z.literal("not-implemented-m1"),
-  largestTokenAccounts: z.array(z.never()),
-  top5TokenAccountConcentration: z.null(),
-  top10TokenAccountConcentration: z.null(),
-  top20TokenAccountConcentration: z.null(),
-  note: z.string(),
+  status: z.enum(["available", "partial", "unavailable", "zero-supply"]),
+  methodology: z.string(),
+  tokenAccountConcentration: z
+    .object({
+      top5Percent: z.string().nullable(),
+      top10Percent: z.string().nullable(),
+      top20Percent: z.string().nullable(),
+      accounts: z.array(concentrationTokenAccountSchema),
+    })
+    .nullable(),
+  resolvedOwnerConcentration: z
+    .object({
+      quality: z.enum(["complete", "partial", "unavailable"]),
+      metricsReliable: z.boolean(),
+      top5Percent: z.string().nullable(),
+      top10Percent: z.string().nullable(),
+      top20Percent: z.string().nullable(),
+      owners: z.array(concentrationOwnerSchema),
+    })
+    .nullable(),
+  resolution: z.object({
+    quality: z.enum(["complete", "partial", "unavailable"]),
+    accountsInspected: z.number().int().min(0),
+    accountsResolved: z.number().int().min(0),
+    accountsUnresolved: z.number().int().min(0),
+    sampledRawBalance: z.string(),
+    sampledSupplyPercent: z.string().nullable(),
+    resolvedAccountPercent: z.string(),
+    sampledBalanceResolvedPercent: z.string(),
+  }),
+  limitations: z.array(z.string()),
 });
 
 export const analysisResultSchema = z.object({
-  version: z.literal("m2"),
+  version: z.literal("m3"),
   generatedAt: z.string(),
   input: z.string(),
   mintAddress: z.string().nullable(),
@@ -111,6 +153,8 @@ export type AnalysisResult = z.infer<typeof analysisResultSchema>;
 export type AuthorityAnalysis = z.infer<typeof authorityAnalysisSchema>;
 export type AuthorityObservation = z.infer<typeof authorityObservationSchema>;
 export type ConcentrationReport = z.infer<typeof concentrationReportSchema>;
+export type ConcentrationTokenAccount = z.infer<typeof concentrationTokenAccountSchema>;
+export type ConcentrationOwner = z.infer<typeof concentrationOwnerSchema>;
 export type IntelScore = z.infer<typeof intelScoreSchema>;
 export type MintInspection = z.infer<typeof mintInspectionSchema>;
 export type ObservableSignal = z.infer<typeof observableSignalSchema>;

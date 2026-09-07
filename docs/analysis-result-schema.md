@@ -1,10 +1,10 @@
 # Analysis Result Schema
 
-M2 returns an `AnalysisResult` object.
+M3 returns an `AnalysisResult` object.
 
 ```ts
 type AnalysisResult = {
-  version: "m2";
+  version: "m3";
   generatedAt: string;
   input: string;
   mintAddress: string | null;
@@ -19,6 +19,11 @@ type AnalysisResult = {
 };
 ```
 
+M3 concentration includes two separate views:
+
+- token-account concentration, calculated directly from the largest token accounts returned by RPC;
+- resolved-owner concentration, calculated only when sampled token-account owners are resolved with sufficient quality.
+
 Every score adjustment must include:
 
 - an observable condition;
@@ -26,4 +31,4 @@ Every score adjustment must include:
 - a short explanation;
 - the source data field used.
 
-M2 does not add score adjustments. Authority observations are surfaced as factual signals, while the XGEN Intel Score remains the M1 baseline until M4.
+M3 does not add score adjustments. Concentration observations are surfaced as factual signals, while the XGEN Intel Score remains the M1 baseline until M4.

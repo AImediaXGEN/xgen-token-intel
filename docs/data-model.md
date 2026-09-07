@@ -36,14 +36,11 @@ M2 adds `authorityAnalysis`:
 
 ## Concentration Metrics
 
-The V1 target model reserves room for concentration metrics, but M2 leaves them unimplemented.
+M3 adds `concentration`:
 
-When implemented, concentration metrics must distinguish:
+- `tokenAccountConcentration`: top 5, top 10, and top 20 largest token-account concentration.
+- `resolvedOwnerConcentration`: top 5, top 10, and top 20 resolved-owner concentration when owner resolution is sufficiently reliable.
+- `resolution`: sampled account counts, unresolved counts, sampled-balance coverage, and owner-resolution quality.
+- `limitations`: explicit methodology limitations.
 
-- token accounts returned by RPC;
-- wallet owners resolved from token accounts;
-- program-owned accounts;
-- liquidity or pool accounts;
-- raw supply concentration.
-
-The app must not label largest token accounts as largest unique human holders unless owner aggregation is implemented and verified.
+The app must not label largest token accounts as largest unique people or verified owner identities. Owner resolution aggregates blockchain owner addresses; it does not identify real-world entities.

@@ -6,7 +6,7 @@ Core philosophy: **Don't trust. Verify.**
 
 ## Current Scope
 
-M2 provides a standalone Next.js foundation and read-only authority inspection:
+M3 provides a standalone Next.js foundation with read-only authority and concentration inspection:
 
 - Validates Solana mint address syntax.
 - Reads observable mint account data through Solana RPC.
@@ -14,7 +14,10 @@ M2 provides a standalone Next.js foundation and read-only authority inspection:
 - Displays decimals, supply, mint authority, and freeze authority when parsed RPC data is available.
 - Explains standard mint authority and freeze authority in factual language.
 - Flags Token-2022 extension authority surfaces as a required limitation unless comprehensively inspected.
-- Preserves clear product boundaries: no wallet connection, no signing, no transactions, no swaps, no custody, no safe/scam verdicts.
+- Calculates token-account concentration from largest token accounts.
+- Resolves token-account owner addresses when parsed RPC data supports it.
+- Calculates resolved-owner concentration only when resolution quality is defensible.
+- Preserves clear product boundaries: no wallet connection, no signing, no transactions, no swaps, no custody, no entity guessing, no safe/scam verdicts.
 
 ## Development
 
@@ -39,6 +42,7 @@ cp .env.example .env.local
 - [Data model](docs/data-model.md)
 - [Analysis result schema](docs/analysis-result-schema.md)
 - [Authority analysis](docs/authority-analysis.md)
+- [Concentration analysis](docs/concentration-analysis.md)
 - [Scoring](docs/scoring.md)
 - [RPC limitations](docs/rpc-limitations.md)
 - [Milestones](docs/milestones.md)

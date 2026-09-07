@@ -25,25 +25,26 @@ No paid APIs or third-party token-risk APIs are included in V1.
 
 ## Module Boundaries
 
-- `src/lib/solana`: Solana RPC configuration, read-only client creation, token program IDs, and low-level account fetching.
-- `src/lib/intel`: application data schemas, mint analysis, authority analysis, observable risk signals, and transparent scoring.
+- `src/lib/solana`: Solana RPC configuration, read-only client creation, token program IDs, low-level account fetching, and owner resolution from parsed token accounts.
+- `src/lib/intel`: application data schemas, mint analysis, authority analysis, concentration analysis, observable risk signals, and transparent scoring.
 - `src/app/api`: server routes that expose analysis results to the UI without exposing RPC implementation details.
 - `src/components`: presentation components only.
-- `docs`: architecture, data model, authority model, scoring method, RPC limitations, and milestone plan.
+- `docs`: architecture, data model, authority model, concentration model, scoring method, RPC limitations, and milestone plan.
 
 ## Provider Model
 
-The analysis layer should accept provider-shaped inputs instead of hard-coding every source into UI components. M2 uses standard Solana RPC only. Future providers can add metadata, liquidity, governance, historical behavior, or binary Token-2022 extension decoding later, but each provider must preserve the read-only boundary and clearly identify its data source.
+The analysis layer should accept provider-shaped inputs instead of hard-coding every source into UI components. M3 uses standard Solana RPC only. Future providers can add metadata, liquidity, governance, historical behavior, binary Token-2022 extension decoding, or entity identification later, but each provider must preserve the read-only boundary and clearly identify its data source.
 
-## M2 Scope
+## M3 Scope
 
-M2 implements:
+M3 implements:
 
-- Factual standard mint authority and freeze authority explanations.
-- Observable authority-related signals.
-- Token-2022 classification.
-- Token-2022 extension authority inventory.
-- Parsed Token-2022 extension authority field reporting when standard RPC exposes those fields.
-- Explicit Token-2022 limitations so revoked standard authorities are not treated as comprehensive low authority risk.
+- Read-only largest-token-account retrieval.
+- Token-account concentration for top 5, top 10, and top 20 sampled token accounts.
+- Token-account owner resolution from parsed account data when reliable.
+- Resolved-owner concentration when resolution quality is sufficient.
+- Explicit resolution-quality reporting.
+- BigInt percentage calculations from raw integer amounts.
+- Factual concentration signals for later scoring milestones.
 
-M2 does not implement holder concentration, market data, liquidity analysis, LP analysis, final scoring methodology, wallet connectivity, transaction signing, blockchain writes, or public GitHub release.
+M3 does not implement market data, liquidity analysis, LP analysis, entity labeling, final scoring methodology, wallet connectivity, transaction signing, blockchain writes, or public GitHub release.

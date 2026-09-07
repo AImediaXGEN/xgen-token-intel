@@ -1,23 +1,36 @@
 import type { AccountInfo, ParsedAccountData } from "@solana/web3.js";
 import { identifyTokenProgram, type SupportedTokenProgram } from "@/lib/solana/constants";
 import { createReadOnlyConnection, parseSolanaPublicKey } from "@/lib/solana/rpc";
+import { fetchLargestTokenAccountsWithOwners } from "@/lib/solana/tokenAccounts";
 import { buildAuthorityAnalysis, buildAuthoritySignals } from "./authorityAnalysis";
+import { buildConcentrationReport } from "./concentration";
 import { calculateM1Score } from "./scoring";
 import type { AnalysisResult, ConcentrationReport, MintInspection } from "./schemas";
 
-const concentrationNotImplemented: ConcentrationReport = {
-  status: "not-implemented-m1",
-  largestTokenAccounts: [],
-  top5TokenAccountConcentration: null,
-  top10TokenAccountConcentration: null,
-  top20TokenAccountConcentration: null,
-  note:
-    "M2 does not report holder concentration. Solana RPC largest-token-account results are token accounts, not unique human holders.",
-};
+function unavailableConcentration(reason: string): ConcentrationReport {
+  return {
+    status: "unavailable",
+    methodology:
+      "Concentration requires read-only largest-token-account RPC data and current mint supply.",
+    tokenAccountConcentration: null,
+    resolvedOwnerConcentration: null,
+    resolution: {
+      quality: "unavailable",
+      accountsInspected: 0,
+      accountsResolved: 0,
+      accountsUnresolved: 0,
+      sampledRawBalance: "0",
+      sampledSupplyPercent: null,
+      resolvedAccountPercent: "0.00",
+      sampledBalanceResolvedPercent: "0.00",
+    },
+    limitations: [reason],
+  };
+}
 
 const baseLimitations = [
-  "M2 uses standard read-only Solana RPC only.",
-  "Largest token accounts and concentration metrics are reserved for M3 to avoid mislabeling token accounts as unique holders.",
+  "M3 uses standard read-only Solana RPC only.",
+  "getTokenLargestAccounts returns the largest token accounts, not every token account and not verified owner identities.",
   "This report does not classify a token as safe, unsafe, or malicious.",
   "The XGEN Intel Score remains the M1 baseline until the M4 scoring methodology milestone.",
 ];
@@ -60,7 +73,7 @@ function emptyResult(
   mintAddress: string | null,
 ): AnalysisResult {
   return {
-    version: "m2",
+    version: "m3",
     generatedAt,
     input,
     mintAddress,
@@ -68,7 +81,7 @@ function emptyResult(
     summary,
     mint: null,
     authorityAnalysis: null,
-    concentration: concentrationNotImplemented,
+    concentration: unavailableConcentration("Concentration is unavailable when no supported mint is available."),
     score: calculateM1Score(null),
     riskSignals: [],
     limitations: baseLimitations,
@@ -150,16 +163,16 @@ export async function analyzeMintAddress(input: string): Promise<AnalysisResult>
 
     if (tokenProgram === "unknown" || !parsedMintInfo) {
       return {
-        version: "m2",
+        version: "m3",
         generatedAt,
         input,
         mintAddress: publicKey.toBase58(),
         status: "unsupported-account",
         summary:
-          "The account exists, but M2 could not verify it as a parsed SPL Token or Token-2022 mint account.",
+          "The account exists, but M3 could not verify it as a parsed SPL Token or Token-2022 mint account.",
         mint,
         authorityAnalysis,
-        concentration: concentrationNotImplemented,
+        concentration: unavailableConcentration("Concentration is unavailable for unsupported or unparsed mint accounts."),
         score: calculateM1Score(mint),
         riskSignals: [],
         limitations: [
@@ -169,19 +182,39 @@ export async function analyzeMintAddress(input: string): Promise<AnalysisResult>
       };
     }
 
+    let concentration: ConcentrationReport;
+    try {
+      const largestAccounts = await fetchLargestTokenAccountsWithOwners(connection, publicKey);
+      concentration = buildConcentrationReport(mint, largestAccounts);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown concentration RPC error";
+      concentration = unavailableConcentration(`Concentration RPC request failed: ${message}`);
+    }
+
     return {
-      version: "m2",
+      version: "m3",
       generatedAt,
       input,
       mintAddress: publicKey.toBase58(),
       status: "ok",
-      summary: "Read-only authority inspection completed from observable Solana RPC data.",
+      summary: "Read-only authority and concentration inspection completed from observable Solana RPC data.",
       mint,
       authorityAnalysis,
-      concentration: concentrationNotImplemented,
+      concentration,
       score: calculateM1Score(mint),
-      riskSignals: buildAuthoritySignals(mint),
-      limitations: [...baseLimitations, ...authorityAnalysis.limitations],
+      riskSignals: [
+        ...buildAuthoritySignals(mint),
+        {
+          id: "token-account-concentration-is-not-holder-identity",
+          label: "Token-account concentration is not holder identity",
+          severity: "info",
+          condition: "M3 separates token-account concentration from resolved-owner concentration.",
+          whyItMatters:
+            "A Solana owner address can control multiple token accounts, and a resolved owner is not a verified real-world entity or person.",
+          source: "getTokenLargestAccounts + getParsedMultipleAccountsInfo",
+        },
+      ],
+      limitations: [...baseLimitations, ...authorityAnalysis.limitations, ...concentration.limitations],
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown RPC error";

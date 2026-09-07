@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import type {
   AnalysisResult,
   AuthorityObservation,
+  ConcentrationReport,
   ObservableSignal,
   Token2022ExtensionAuthority,
 } from "@/lib/intel/schemas";
@@ -28,6 +29,15 @@ function Field({ label, value }: { label: string; value: string }) {
     <div className="border-b border-slate-200 py-3 last:border-b-0">
       <dt className="text-sm font-medium text-slate-500">{label}</dt>
       <dd className="mt-1 break-words font-mono text-sm text-slate-950">{value}</dd>
+    </div>
+  );
+}
+
+function PercentMetric({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <dt className="text-sm font-medium text-slate-500">{label}</dt>
+      <dd className="mt-1 text-2xl font-semibold text-slate-950">{value ? `${value}%` : "N/A"}</dd>
     </div>
   );
 }
@@ -72,6 +82,72 @@ function Token2022ExtensionCard({ extension }: { extension: Token2022ExtensionAu
       )}
       <p className="mt-3 break-words font-mono text-xs opacity-80">Source: {extension.source}</p>
     </section>
+  );
+}
+
+function ConcentrationSection({ concentration }: { concentration: ConcentrationReport }) {
+  const tokenAccounts = concentration.tokenAccountConcentration;
+  const owners = concentration.resolvedOwnerConcentration;
+
+  return (
+    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="text-xl font-semibold text-slate-950">Concentration</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-700">
+        Solana tokens can be distributed across multiple token accounts controlled by the same owner. XGEN Token Intel separates raw token-account concentration from resolved-owner concentration.
+      </p>
+      <p className="mt-2 text-sm leading-6 text-slate-700">{concentration.methodology}</p>
+
+      <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+        <PercentMetric label="Token accounts top 5" value={tokenAccounts?.top5Percent} />
+        <PercentMetric label="Token accounts top 10" value={tokenAccounts?.top10Percent} />
+        <PercentMetric label="Token accounts top 20" value={tokenAccounts?.top20Percent} />
+      </dl>
+
+      <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <h3 className="font-semibold text-slate-950">Resolution</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-700">
+          {concentration.resolution.accountsResolved} / {concentration.resolution.accountsInspected} sampled token accounts resolved to owner addresses.
+        </p>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+          <Field label="Resolution quality" value={concentration.resolution.quality} />
+          <Field label="Unresolved accounts" value={String(concentration.resolution.accountsUnresolved)} />
+          <Field label="Sampled supply represented" value={concentration.resolution.sampledSupplyPercent ? `${concentration.resolution.sampledSupplyPercent}%` : "N/A"} />
+          <Field label="Sampled balance resolved" value={`${concentration.resolution.sampledBalanceResolvedPercent}%`} />
+        </dl>
+      </div>
+
+      <dl className="mt-5 grid gap-3 sm:grid-cols-3">
+        <PercentMetric label="Resolved owners top 5" value={owners?.top5Percent} />
+        <PercentMetric label="Resolved owners top 10" value={owners?.top10Percent} />
+        <PercentMetric label="Resolved owners top 20" value={owners?.top20Percent} />
+      </dl>
+
+      {owners && !owners.metricsReliable ? (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+          Resolved-owner concentration metrics are hidden because owner-resolution quality is not sufficient for a defensible aggregate.
+        </div>
+      ) : null}
+
+      <div className="mt-5 overflow-hidden rounded-lg border border-slate-200">
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 font-semibold text-slate-950">
+          Largest Token Accounts
+        </div>
+        <div className="divide-y divide-slate-200">
+          {tokenAccounts?.accounts.slice(0, 20).map((account, index) => (
+            <div key={account.tokenAccountAddress} className="grid gap-2 px-4 py-3 text-sm sm:grid-cols-[48px_minmax(0,1fr)_120px]">
+              <span className="font-semibold text-slate-500">#{index + 1}</span>
+              <div className="min-w-0">
+                <p className="break-words font-mono text-slate-950">{account.tokenAccountAddress}</p>
+                <p className="mt-1 break-words font-mono text-xs text-slate-600">
+                  Owner: {account.ownerAddress ?? "Unresolved"}
+                </p>
+              </div>
+              <span className="font-mono text-slate-700">{account.percentOfSupply ? `${account.percentOfSupply}%` : "N/A"}</span>
+            </div>
+          )) ?? <div className="px-4 py-3 text-sm text-slate-700">No token-account concentration data available.</div>}
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -123,7 +199,7 @@ export function TokenIntelApp() {
               XGEN Token Intel
             </h1>
             <p className="mt-4 text-lg leading-8 text-slate-700">
-              Paste a Solana token mint address and verify observable authority characteristics from read-only RPC data.
+              Paste a Solana token mint address and verify observable authority and concentration characteristics from read-only RPC data.
             </p>
           </div>
           <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row">
@@ -156,7 +232,7 @@ export function TokenIntelApp() {
             <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">M2 report</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">M3 report</p>
                   <h2 className="mt-1 text-2xl font-semibold text-slate-950">{result.summary}</h2>
                 </div>
                 <span className="rounded-md border border-slate-200 px-3 py-1 text-sm font-medium text-slate-700">
@@ -175,7 +251,7 @@ export function TokenIntelApp() {
             </article>
           ) : (
             <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-slate-700">
-              Enter a Solana token mint address to generate the read-only M2 authority inspection report.
+              Enter a Solana token mint address to generate the read-only M3 concentration inspection report.
             </div>
           )}
 
@@ -192,7 +268,7 @@ export function TokenIntelApp() {
                 <div className="mt-5">
                   <h3 className="text-lg font-semibold text-slate-950">Token-2022 Extension Authority Surfaces</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-700">
-                    M2 does not treat absent or unparsed extension data as evidence of low authority risk.
+                    M3 does not treat absent or unparsed extension data as evidence of low authority risk.
                   </p>
                   <div className="mt-4 grid gap-3">
                     {detectedToken2022Extensions.length > 0 ? (
@@ -201,7 +277,7 @@ export function TokenIntelApp() {
                       ))
                     ) : (
                       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-                        No Token-2022 authority-bearing extension fields were parsed by M2 from RPC in this response. This is not an absence or safety claim.
+                        No Token-2022 authority-bearing extension fields were parsed by M3 from RPC in this response. This is not an absence or safety claim.
                       </div>
                     )}
                   </div>
@@ -209,6 +285,8 @@ export function TokenIntelApp() {
               ) : null}
             </article>
           ) : null}
+
+          {result ? <ConcentrationSection concentration={result.concentration} /> : null}
 
           {result ? (
             <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -227,7 +305,7 @@ export function TokenIntelApp() {
                     </section>
                   ))
                 ) : (
-                  <p className="text-slate-700">No M2 observable authority signals were produced for this response.</p>
+                  <p className="text-slate-700">No M3 observable authority or concentration signals were produced for this response.</p>
                 )}
               </div>
             </article>
@@ -243,7 +321,7 @@ export function TokenIntelApp() {
             </div>
             <p className="mt-4 text-sm leading-6 text-slate-700">
               {result?.score.methodology ??
-                "M2 keeps the M1 baseline score. M4 will add explicit observable adjustments."}
+                "M3 keeps the M1 baseline score. M4 will add explicit observable adjustments."}
             </p>
             <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
               Score adjustments: {result?.score.adjustments.length ?? 0}
@@ -251,10 +329,11 @@ export function TokenIntelApp() {
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">Concentration</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Resolution Quality</h2>
             <p className="mt-3 text-sm leading-6 text-slate-700">
-              {result?.concentration.note ??
-                "M3 will implement carefully labeled token-account concentration analysis."}
+              {result
+                ? `${result.concentration.resolution.accountsResolved} of ${result.concentration.resolution.accountsInspected} sampled token accounts resolved.`
+                : "Owner resolution is shown after analysis."}
             </p>
           </section>
 
@@ -264,6 +343,7 @@ export function TokenIntelApp() {
               <li>No wallet connection.</li>
               <li>No signing or transactions.</li>
               <li>No swaps, trading, custody, or locking.</li>
+              <li>No entity guessing.</li>
               <li>No safe/scam verdicts.</li>
             </ul>
           </section>
