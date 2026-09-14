@@ -181,17 +181,21 @@ function Token2022ExtensionCard({ extension }: { extension: Token2022ExtensionAu
 
 function ScorePanel({ result }: { result: AnalysisResult | null }) {
   const coverage = coverageDisplay(result?.analysisCoverage.status ?? "pending");
-  const prominent = shouldProminentlyPairCoverage(result?.score.value, result?.analysisCoverage.status ?? "pending");
+  const scoreValue = result?.score?.value;
+  const hasScore = typeof scoreValue === "number";
+  const prominent = shouldProminentlyPairCoverage(scoreValue, result?.analysisCoverage.status ?? "pending");
 
   return (
     <section className={panelClass("min-w-0 overflow-hidden")}>
       <div className="border-b border-cyan-300/10 bg-cyan-300/[0.035] p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">XGEN Intel Score</p>
         <div className="mt-4 flex items-end gap-3">
-          <span className="font-mono text-6xl font-semibold leading-none text-slate-50">{result?.score.value ?? "--"}</span>
-          <span className="pb-2 font-mono text-lg text-slate-400">/ 100</span>
+          <span className={`${hasScore ? "text-6xl" : "text-4xl"} font-mono font-semibold leading-none text-slate-50`}>
+            {hasScore ? scoreValue : result ? "UNSCORED" : "--"}
+          </span>
+          {hasScore ? <span className="pb-2 font-mono text-lg text-slate-400">/ 100</span> : null}
         </div>
-        <p className="mt-3 text-base font-semibold text-slate-200">{result?.score.band ?? "Awaiting analysis"}</p>
+        <p className="mt-3 text-base font-semibold text-slate-200">{result?.score?.band ?? (result ? "No score produced" : "Awaiting analysis")}</p>
       </div>
       <div className="space-y-4 p-5">
         <div className={`rounded-lg border p-4 ${toneClass(coverage.tone)} ${prominent ? "shadow-[0_0_30px_rgba(251,191,36,0.12)]" : ""}`}>
@@ -202,8 +206,8 @@ function ScorePanel({ result }: { result: AnalysisResult | null }) {
           <p className="mt-3 text-sm leading-6">{publicUiCopy(coverage.description)}</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Metric label="Methodology" value={result?.score.methodologyVersion ? `v${result.score.methodologyVersion}` : "v1.0.0"} />
-          <Metric label="Points Deducted" value={String(result?.score.totalDeductions ?? 0)} />
+          <Metric label="Methodology" value={result?.score?.methodologyVersion ? `v${result.score.methodologyVersion}` : result ? "N/A" : "v1.0.0"} />
+          <Metric label="Points Deducted" value={result?.score ? String(result.score.totalDeductions) : result ? "N/A" : "0"} />
         </div>
       </div>
     </section>
@@ -538,7 +542,7 @@ export function TokenIntelApp() {
               ) : null}
             </section>
 
-            <DeductionBreakdown deductions={result.score.deductions} />
+            <DeductionBreakdown deductions={result.score?.deductions ?? []} />
 
             <section className={panelClass("p-5")}>
               <SectionHeader eyebrow="boundaries" title="Read-only Product Boundary" />

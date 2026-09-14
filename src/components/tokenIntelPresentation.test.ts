@@ -99,6 +99,11 @@ describe("token intel presentation helpers", () => {
     expect(coverageDisplay("complete").description).not.toBe(coverageDisplay("limited").description);
   });
 
+  it("keeps missing scores visually unpaired from coverage warnings", () => {
+    expect(shouldProminentlyPairCoverage(null, "limited")).toBe(false);
+    expect(shouldProminentlyPairCoverage(undefined, "partial")).toBe(false);
+  });
+
   it("uses public coverage copy without internal milestone wording", () => {
     expect(coverageDisplay("complete").description).toBe("Core authority and concentration surfaces were analyzed.");
     expect(coverageDisplay("complete").description).not.toMatch(/\bM[1-5]\b/);

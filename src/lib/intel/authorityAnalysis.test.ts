@@ -189,3 +189,39 @@ describe("buildAuthoritySignals", () => {
     expect(signals.some((signal) => signal.id === "token-2022-extension-authority-review-required")).toBe(true);
   });
 });
+
+
+describe("M6 Token-2022 adversarial authority matrix", () => {
+  it("keeps revoked standard authorities from implying comprehensive Token-2022 authority safety", () => {
+    const analysis = buildAuthorityAnalysis({
+      tokenProgram: "token-2022",
+      mintAuthority: null,
+      mintAuthorityRevoked: true,
+      freezeAuthority: null,
+      freezeAuthorityRevoked: true,
+      extensions: [
+        { extension: "transferHook", state: { authority: "HookAuthority1111111111111111111111111111" } },
+        { extension: "metadataPointer", state: { authority: "MetadataAuthority111111111111111111111111" } },
+      ],
+    });
+
+    expect(analysis.scope).toBe("token-2022");
+    expect(analysis.standardAuthorities.every((authority) => authority.status === "revoked")).toBe(true);
+    expect(analysis.limitations.join(" ")).toContain("does not claim comprehensive Token-2022 authority coverage");
+    expect(analysis.token2022Extensions.find((extension) => extension.extension === "transferHook")?.authorityFields).toEqual([
+      { field: "authority", value: "HookAuthority1111111111111111111111111111" },
+    ]);
+  });
+
+  it("keeps malformed standard authority state unknown instead of revoked", () => {
+    const analysis = buildAuthorityAnalysis({
+      tokenProgram: "spl-token",
+      mintAuthority: null,
+      mintAuthorityRevoked: null,
+      freezeAuthority: null,
+      freezeAuthorityRevoked: null,
+    });
+
+    expect(analysis.standardAuthorities.map((authority) => authority.status)).toEqual(["unknown", "unknown"]);
+  });
+});

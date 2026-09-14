@@ -242,3 +242,51 @@ describe("calculateIntelScore", () => {
     expect(text).not.toContain("sell");
   });
 });
+
+
+describe("M6 concentration threshold adversarial matrix", () => {
+  it.each([
+    ["0.0000", 0],
+    ["19.9999", 0],
+    ["20.0000", 5],
+    ["20.0001", 5],
+    ["39.9999", 5],
+    ["40.0000", 10],
+    ["40.0001", 10],
+    ["59.9999", 10],
+    ["60.0000", 15],
+    ["60.0001", 15],
+    ["79.9999", 15],
+    ["80.0000", 20],
+    ["80.0001", 20],
+    ["99.9999", 20],
+    ["100.0000", 20],
+  ])("keeps Top-5 boundary %s at %i points", (percent, points) => {
+    expect(concentrationBandDeduction(percent).points).toBe(points);
+  });
+
+  function splitRawAmount(total: number, count: number): string[] {
+    const base = Math.floor(total / count);
+    const remainder = total % count;
+
+    return Array.from({ length: count }, (_value, index) => String(base + (index < remainder ? 1 : 0)));
+  }
+
+  it.each([
+    ["top10 below 90", 8000, 8999, false],
+    ["top10 exactly 90 and spread exactly 10", 8000, 9000, true],
+    ["top10 above 90 and spread above 10", 7900, 9100, true],
+    ["top10 exactly 90 but spread below 10", 8050, 9000, false],
+    ["top10 below 90 but spread above 10", 7800, 8801, false],
+  ])("triggers Top-10 extreme only when both conditions hold: %s", (_label, top5Raw, top10Raw, expected) => {
+    const mintInput = mint({ supply: { rawAmount: "10000", decimals: 0, uiAmountString: "10000" } });
+    const amounts = [...splitRawAmount(top5Raw, 5), ...splitRawAmount(top10Raw - top5Raw, 5)];
+    const concentration = buildConcentrationReport(
+      mintInput,
+      amounts.map((rawAmount, index) => account(index + 1, rawAmount, `Owner${index + 1}`)),
+    );
+    const score = calculateIntelScore(scoreInput(mintInput, concentration));
+
+    expect(score.deductions.some((deduction) => deduction.ruleId === "CONC_RESOLVED_OWNER_TOP10_EXTREME")).toBe(expected);
+  });
+});

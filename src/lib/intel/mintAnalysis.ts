@@ -10,9 +10,10 @@ import type { AnalysisResult, ConcentrationReport, MintInspection } from "./sche
 export function sanitizeRpcErrorMessage(message: string): string {
   return message
     .replace(/https?:\/\/\S+/g, "[redacted-rpc-url]")
-    .replace(/([?&](?:api[-_]?key|key|token)=)[^\s"&]+/gi, "$1[redacted]");
+    .replace(/\b(authorization:\s*)(?:bearer|basic)\s+[^\s,;]+/gi, "$1[redacted]")
+    .replace(/\b(authorization:\s*)[^\s,;]+/gi, "$1[redacted]")
+    .replace(/\b((?:api[-_]?key|key|token)=)[^\s"&]+/gi, "$1[redacted]");
 }
-
 function unavailableConcentration(reason: string): ConcentrationReport {
   return {
     status: "unavailable",
@@ -72,7 +73,6 @@ function emptyResult(
   mintAddress: string | null,
 ): AnalysisResult {
   const concentration = unavailableConcentration("Concentration is unavailable when no supported mint is available.");
-  const scoringInput = { mint: null, authorityAnalysis: null, concentration };
 
   return {
     version: "m4",
@@ -84,8 +84,8 @@ function emptyResult(
     mint: null,
     authorityAnalysis: null,
     concentration,
-    score: calculateIntelScore(scoringInput),
-    analysisCoverage: calculateAnalysisCoverage(scoringInput),
+    score: null,
+    analysisCoverage: calculateAnalysisCoverage({ mint: null, authorityAnalysis: null, concentration }),
     riskSignals: [],
     limitations: baseLimitations,
   };
@@ -164,11 +164,11 @@ export async function analyzeMintAddress(input: string): Promise<AnalysisResult>
         input,
         mintAddress: publicKey.toBase58(),
         status: "unsupported-account",
-        summary: "The account exists, but M4 could not verify it as a parsed SPL Token or Token-2022 mint account.",
+        summary: "The account exists, but this analysis could not verify it as a parsed SPL Token or Token-2022 mint account.",
         mint,
         authorityAnalysis,
         concentration,
-        score: calculateIntelScore(scoringInput),
+        score: null,
         analysisCoverage: calculateAnalysisCoverage(scoringInput),
         riskSignals: [],
         limitations: [...baseLimitations, ...supplyLimitation, "Unsupported accounts are not interpreted as token mints."],

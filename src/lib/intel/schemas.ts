@@ -163,7 +163,7 @@ export const analysisResultSchema = z.object({
   mint: mintInspectionSchema.nullable(),
   authorityAnalysis: authorityAnalysisSchema.nullable(),
   concentration: concentrationReportSchema,
-  score: intelScoreSchema,
+  score: intelScoreSchema.nullable(),
   analysisCoverage: analysisCoverageSchema,
   riskSignals: z.array(observableSignalSchema),
   limitations: z.array(z.string()),

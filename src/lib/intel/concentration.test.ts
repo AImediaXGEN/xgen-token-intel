@@ -185,3 +185,53 @@ describe("buildConcentrationReport", () => {
     expect(text).not.toContain("developer wallet");
   });
 });
+
+
+describe("M6 owner-resolution reliability boundaries", () => {
+  it("treats exactly 80% account and balance resolution as reliable", () => {
+    const report = buildConcentrationReport(mint("1000"), [
+      account(1, "200", "OwnerA"),
+      account(2, "200", "OwnerB"),
+      account(3, "200", "OwnerC"),
+      account(4, "200", "OwnerD"),
+      account(5, "200", null),
+    ]);
+
+    expect(report.resolution.resolvedAccountPercent).toBe("80.00");
+    expect(report.resolution.sampledBalanceResolvedPercent).toBe("80.00");
+    expect(report.resolvedOwnerConcentration?.metricsReliable).toBe(true);
+  });
+
+  it("treats below 80% resolved balance as unreliable even with 80% accounts resolved", () => {
+    const report = buildConcentrationReport(mint("1000"), [
+      account(1, "100", "OwnerA"),
+      account(2, "100", "OwnerB"),
+      account(3, "100", "OwnerC"),
+      account(4, "100", "OwnerD"),
+      account(5, "600", null),
+    ]);
+
+    expect(report.resolution.resolvedAccountPercent).toBe("80.00");
+    expect(report.resolution.sampledBalanceResolvedPercent).toBe("40.00");
+    expect(report.resolvedOwnerConcentration?.metricsReliable).toBe(false);
+    expect(report.resolvedOwnerConcentration?.top5Percent).toBeNull();
+  });
+
+  it("does not convert zero supply concentration into zero percent concentration", () => {
+    const report = buildConcentrationReport(mint("0"), [account(1, "0", "OwnerA")]);
+
+    expect(report.status).toBe("zero-supply");
+    expect(report.tokenAccountConcentration?.top5Percent).toBeNull();
+    expect(report.resolvedOwnerConcentration).toBeNull();
+    expect(report.limitations.join(" ")).toContain("zero");
+  });
+
+  it("returns unavailable instead of coercing malformed supply", () => {
+    const malformedMint = mint("not-a-number");
+    const report = buildConcentrationReport(malformedMint, [account(1, "100", "OwnerA")]);
+
+    expect(report.status).toBe("unavailable");
+    expect(report.tokenAccountConcentration).toBeNull();
+    expect(report.limitations.join(" ")).toContain("malformed");
+  });
+});
