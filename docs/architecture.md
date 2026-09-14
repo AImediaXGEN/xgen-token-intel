@@ -26,25 +26,24 @@ No paid APIs or third-party token-risk APIs are included in V1.
 ## Module Boundaries
 
 - `src/lib/solana`: Solana RPC configuration, read-only client creation, token program IDs, low-level account fetching, and owner resolution from parsed token accounts.
-- `src/lib/intel`: application data schemas, mint analysis, authority analysis, concentration analysis, observable risk signals, and transparent scoring.
+- `src/lib/intel`: application data schemas, mint analysis, authority analysis, concentration analysis, observable risk signals, analysis coverage, and transparent scoring.
 - `src/app/api`: server routes that expose analysis results to the UI without exposing RPC implementation details.
 - `src/components`: presentation components only.
 - `docs`: architecture, data model, authority model, concentration model, scoring method, RPC limitations, and milestone plan.
 
 ## Provider Model
 
-The analysis layer should accept provider-shaped inputs instead of hard-coding every source into UI components. M3 uses standard Solana RPC only. Future providers can add metadata, liquidity, governance, historical behavior, binary Token-2022 extension decoding, or entity identification later, but each provider must preserve the read-only boundary and clearly identify its data source.
+The analysis layer should accept provider-shaped inputs instead of hard-coding every source into UI components. M4 uses standard Solana RPC only. Future providers can add metadata, liquidity, governance, historical behavior, binary Token-2022 extension decoding, or entity identification later, but each provider must preserve the read-only boundary and clearly identify its data source.
 
-## M3 Scope
+## M4 Scope
 
-M3 implements:
+M4 implements:
 
-- Read-only largest-token-account retrieval.
-- Token-account concentration for top 5, top 10, and top 20 sampled token accounts.
-- Token-account owner resolution from parsed account data when reliable.
-- Resolved-owner concentration when resolution quality is sufficient.
-- Explicit resolution-quality reporting.
-- BigInt percentage calculations from raw integer amounts.
-- Factual concentration signals for later scoring milestones.
+- Deterministic XGEN Intel Score methodology `1.0.0`.
+- A 100-point baseline with documented deductions only.
+- Standard mint authority and freeze authority score deductions when active.
+- Resolved-owner concentration deductions only when M3 resolution quality is sufficient.
+- Separate analysis coverage reporting for missing, unsupported, or incomplete analysis surfaces.
+- Explicit Token-2022 coverage limitation when extension authority surfaces are not comprehensively inspected.
 
-M3 does not implement market data, liquidity analysis, LP analysis, entity labeling, final scoring methodology, wallet connectivity, transaction signing, blockchain writes, or public GitHub release.
+M4 does not implement market data, liquidity analysis, LP analysis, entity labeling, wallet connectivity, transaction signing, blockchain writes, public GitHub release, or M5 UI polish.

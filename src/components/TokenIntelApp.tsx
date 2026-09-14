@@ -6,6 +6,7 @@ import type {
   AuthorityObservation,
   ConcentrationReport,
   ObservableSignal,
+  ScoreDeduction,
   Token2022ExtensionAuthority,
 } from "@/lib/intel/schemas";
 
@@ -78,9 +79,28 @@ function Token2022ExtensionCard({ extension }: { extension: Token2022ExtensionAu
           ))}
         </dl>
       ) : (
-        <p className="mt-3 text-sm">No parsed authority field was available for this extension in the M2 response.</p>
+        <p className="mt-3 text-sm">No parsed authority field was available for this extension in the M4 response.</p>
       )}
       <p className="mt-3 break-words font-mono text-xs opacity-80">Source: {extension.source}</p>
+    </section>
+  );
+}
+
+function ScoreDeductionCard({ deduction }: { deduction: ScoreDeduction }) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-950">{deduction.ruleId}</h3>
+          <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-500">{deduction.category}</p>
+        </div>
+        <span className="font-mono text-sm font-semibold text-red-700">-{deduction.points}</span>
+      </div>
+      <p className="mt-2 text-sm leading-6 text-slate-700">{deduction.condition}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-700">{deduction.explanation}</p>
+      <p className="mt-2 break-words font-mono text-xs text-slate-500">
+        {deduction.evidence.source}: {deduction.evidence.value}
+      </p>
     </section>
   );
 }
@@ -232,7 +252,7 @@ export function TokenIntelApp() {
             <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">M3 report</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-500">M4 report</p>
                   <h2 className="mt-1 text-2xl font-semibold text-slate-950">{result.summary}</h2>
                 </div>
                 <span className="rounded-md border border-slate-200 px-3 py-1 text-sm font-medium text-slate-700">
@@ -251,7 +271,7 @@ export function TokenIntelApp() {
             </article>
           ) : (
             <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-slate-700">
-              Enter a Solana token mint address to generate the read-only M3 concentration inspection report.
+              Enter a Solana token mint address to generate the read-only M4 authority, concentration, and transparent scoring report.
             </div>
           )}
 
@@ -268,7 +288,7 @@ export function TokenIntelApp() {
                 <div className="mt-5">
                   <h3 className="text-lg font-semibold text-slate-950">Token-2022 Extension Authority Surfaces</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-700">
-                    M3 does not treat absent or unparsed extension data as evidence of low authority risk.
+                    M4 does not treat absent or unparsed extension data as evidence of low authority risk.
                   </p>
                   <div className="mt-4 grid gap-3">
                     {detectedToken2022Extensions.length > 0 ? (
@@ -277,7 +297,7 @@ export function TokenIntelApp() {
                       ))
                     ) : (
                       <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-                        No Token-2022 authority-bearing extension fields were parsed by M3 from RPC in this response. This is not an absence or safety claim.
+                        No Token-2022 authority-bearing extension fields were parsed from RPC in this response. This is not an absence or low-risk claim.
                       </div>
                     )}
                   </div>
@@ -305,7 +325,7 @@ export function TokenIntelApp() {
                     </section>
                   ))
                 ) : (
-                  <p className="text-slate-700">No M3 observable authority or concentration signals were produced for this response.</p>
+                  <p className="text-slate-700">No M4 observable authority or concentration signals were produced for this response.</p>
                 )}
               </div>
             </article>
@@ -316,16 +336,64 @@ export function TokenIntelApp() {
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">XGEN Intel Score</h2>
             <div className="mt-4 flex items-end gap-2">
-              <span className="text-5xl font-semibold">{result?.score.value ?? 50}</span>
+              <span className="text-5xl font-semibold">{result?.score.value ?? 100}</span>
               <span className="pb-2 text-slate-500">/ 100</span>
             </div>
-            <p className="mt-4 text-sm leading-6 text-slate-700">
-              {result?.score.methodology ??
-                "M3 keeps the M1 baseline score. M4 will add explicit observable adjustments."}
-            </p>
-            <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              Score adjustments: {result?.score.adjustments.length ?? 0}
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+              <p className="font-semibold">
+                Coverage: {result?.analysisCoverage.status ?? "pending"}
+              </p>
+              <p>
+                A high score means few risk characteristics were observed within analyzed surfaces. Unobserved risk can still exist when coverage is incomplete.
+              </p>
             </div>
+            <p className="mt-3 text-sm font-semibold text-slate-700">
+              {result?.score.band ?? "Awaiting analysis"}
+            </p>
+            <p className="mt-4 text-sm leading-6 text-slate-700">
+              {result?.score.methodology ?? "Methodology 1.0.0 starts at 100 and deducts only for documented observed characteristics."}
+            </p>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <dt className="text-slate-500">Baseline</dt>
+                <dd className="font-mono font-semibold">{result?.score.baseline ?? 100}</dd>
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <dt className="text-slate-500">Deductions</dt>
+                <dd className="font-mono font-semibold">{result?.score.totalDeductions ?? 0}</dd>
+              </div>
+            </dl>
+            <p className="mt-3 text-xs text-slate-500">
+              Methodology version {result?.score.methodologyVersion ?? "1.0.0"}
+            </p>
+            <div className="mt-4 grid gap-3">
+              {result && result.score.deductions.length > 0 ? (
+                result.score.deductions.map((deduction) => (
+                  <ScoreDeductionCard key={deduction.ruleId} deduction={deduction} />
+                ))
+              ) : (
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+                  No score deductions have been applied.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Analysis Coverage</h2>
+            <p className="mt-2 text-sm font-semibold uppercase tracking-[0.14em] text-slate-600">
+              {result?.analysisCoverage.status ?? "Pending"}
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-700">
+              {result?.analysisCoverage.methodology ?? "Coverage is shown after analysis."}
+            </p>
+            {result && result.analysisCoverage.reasons.length > 0 ? (
+              <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                {result.analysisCoverage.reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            ) : null}
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">

@@ -44,3 +44,16 @@ M3 adds `concentration`:
 - `limitations`: explicit methodology limitations.
 
 The app must not label largest token accounts as largest unique people or verified owner identities. Owner resolution aggregates blockchain owner addresses; it does not identify real-world entities.
+
+## Transparent Scoring
+
+M4 adds `score`:
+
+- `methodologyVersion`: currently `1.0.0`.
+- `baseline`: always `100`.
+- `deductions`: deterministic rule applications with evidence.
+- `totalDeductions`: sum of applied deductions.
+- `value`: `baseline - totalDeductions`, clamped to `0-100`.
+- `band`: plain-language band describing observed risk characteristics.
+
+M4 also adds `analysisCoverage`, which is separate from `score` and records missing, unsupported, or incomplete analysis surfaces.

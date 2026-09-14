@@ -288,8 +288,8 @@ export function buildConcentrationReport(
       "Token-account concentration is not the same as unique owner concentration.",
       "Resolved owners are blockchain owner addresses, not verified people or real-world entities.",
       "Program-controlled accounts, exchanges, custodians, treasuries, bridges, vesting programs, and liquidity pools may distort naive interpretations.",
-      "M3 does not guess entity labels. Unknown remains unknown.",
-      "Concentration does not change the XGEN Intel Score in M3.",
+      "M4 does not guess entity labels. Unknown remains unknown.",
+      "Concentration affects the XGEN Intel Score only through documented M4 resolved-owner scoring rules when metrics are reliable.",
     ],
   };
 }

@@ -6,7 +6,7 @@ Core philosophy: **Don't trust. Verify.**
 
 ## Current Scope
 
-M3 provides a standalone Next.js foundation with read-only authority and concentration inspection:
+M4 provides a standalone Next.js foundation with read-only authority inspection, concentration inspection, transparent scoring, and analysis coverage:
 
 - Validates Solana mint address syntax.
 - Reads observable mint account data through Solana RPC.
@@ -17,6 +17,8 @@ M3 provides a standalone Next.js foundation with read-only authority and concent
 - Calculates token-account concentration from largest token accounts.
 - Resolves token-account owner addresses when parsed RPC data supports it.
 - Calculates resolved-owner concentration only when resolution quality is defensible.
+- Applies deterministic XGEN Intel Score methodology `1.0.0` from documented M1-M3 evidence only.
+- Separates score from analysis coverage so missing data is not automatically treated as risk.
 - Preserves clear product boundaries: no wallet connection, no signing, no transactions, no swaps, no custody, no entity guessing, no safe/scam verdicts.
 
 ## Development
@@ -29,12 +31,14 @@ pnpm typecheck
 pnpm lint
 ```
 
-Optional RPC override:
+Optional dedicated RPC override:
 
 ```bash
 cp .env.example .env.local
-# edit SOLANA_RPC_URL if you want to use a read-only custom endpoint
+# edit SOLANA_RPC_URL in .env.local with your read-only Solana RPC endpoint
 ```
+
+Use a server-only variable such as `SOLANA_RPC_URL`. Do not use `NEXT_PUBLIC_SOLANA_RPC_URL` for credential-bearing endpoints.
 
 ## Documentation
 

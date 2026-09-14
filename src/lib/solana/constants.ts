@@ -5,7 +5,7 @@ export const SPL_TOKEN_PROGRAM_ID = new PublicKey(
 );
 
 export const TOKEN_2022_PROGRAM_ID = new PublicKey(
-  "TokenzQdBNbLqP5VE9zhz4v5DAwU6AFwdYJ11rAUYms",
+  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
 );
 
 export type SupportedTokenProgram = "spl-token" | "token-2022" | "unknown";

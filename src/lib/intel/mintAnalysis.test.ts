@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PublicKey, type AccountInfo, type ParsedAccountData } from "@solana/web3.js";
 import { SPL_TOKEN_PROGRAM_ID } from "../solana/constants";
-import { getParsedMintInfo } from "./mintAnalysis";
+import { getParsedMintInfo, sanitizeRpcErrorMessage } from "./mintAnalysis";
 
 describe("getParsedMintInfo", () => {
   it("returns null for parsed non-mint accounts", () => {
@@ -33,5 +33,18 @@ describe("getParsedMintInfo", () => {
     } as AccountInfo<Buffer | ParsedAccountData>;
 
     expect(getParsedMintInfo(account)).toBeNull();
+  });
+});
+
+
+describe("sanitizeRpcErrorMessage", () => {
+  it("redacts credential-bearing RPC URLs from user-facing errors", () => {
+    const sanitized = sanitizeRpcErrorMessage(
+      "failed at https://example.helius-rpc.com/?api-key=secret-value&other=ok",
+    );
+
+    expect(sanitized).not.toContain("secret-value");
+    expect(sanitized).not.toContain("example.helius-rpc.com");
+    expect(sanitized).toContain("[redacted-rpc-url]");
   });
 });

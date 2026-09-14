@@ -11,21 +11,40 @@ export const observableSignalSchema = z.object({
   source: z.string(),
 });
 
-export const scoreAdjustmentSchema = z.object({
-  id: z.string(),
-  label: z.string(),
-  delta: z.number().int(),
+export const scoreDeductionSchema = z.object({
+  ruleId: z.string(),
+  category: z.enum(["authority", "concentration"]),
+  points: z.number().int().min(0),
   condition: z.string(),
   explanation: z.string(),
-  source: z.string(),
+  evidence: z.object({
+    source: z.string(),
+    value: z.string(),
+  }),
+  confidence: z.enum(["observed", "coverage-limited"]),
 });
 
 export const intelScoreSchema = z.object({
   label: z.literal("XGEN Intel Score"),
+  methodologyVersion: z.literal("1.0.0"),
   value: z.number().int().min(0).max(100),
   max: z.literal(100),
+  baseline: z.literal(100),
+  totalDeductions: z.number().int().min(0),
+  band: z.enum([
+    "Few observed risk characteristics",
+    "Some observed risk characteristics",
+    "Elevated observed risk characteristics",
+    "High observed risk characteristics",
+  ]),
   methodology: z.string(),
-  adjustments: z.array(scoreAdjustmentSchema),
+  deductions: z.array(scoreDeductionSchema),
+});
+
+export const analysisCoverageSchema = z.object({
+  status: z.enum(["complete", "partial", "limited"]),
+  methodology: z.string(),
+  reasons: z.array(z.string()),
 });
 
 export const tokenSupplySchema = z.object({
@@ -129,7 +148,7 @@ export const concentrationReportSchema = z.object({
 });
 
 export const analysisResultSchema = z.object({
-  version: z.literal("m3"),
+  version: z.literal("m4"),
   generatedAt: z.string(),
   input: z.string(),
   mintAddress: z.string().nullable(),
@@ -145,10 +164,12 @@ export const analysisResultSchema = z.object({
   authorityAnalysis: authorityAnalysisSchema.nullable(),
   concentration: concentrationReportSchema,
   score: intelScoreSchema,
+  analysisCoverage: analysisCoverageSchema,
   riskSignals: z.array(observableSignalSchema),
   limitations: z.array(z.string()),
 });
 
+export type AnalysisCoverage = z.infer<typeof analysisCoverageSchema>;
 export type AnalysisResult = z.infer<typeof analysisResultSchema>;
 export type AuthorityAnalysis = z.infer<typeof authorityAnalysisSchema>;
 export type AuthorityObservation = z.infer<typeof authorityObservationSchema>;
@@ -158,7 +179,7 @@ export type ConcentrationOwner = z.infer<typeof concentrationOwnerSchema>;
 export type IntelScore = z.infer<typeof intelScoreSchema>;
 export type MintInspection = z.infer<typeof mintInspectionSchema>;
 export type ObservableSignal = z.infer<typeof observableSignalSchema>;
-export type ScoreAdjustment = z.infer<typeof scoreAdjustmentSchema>;
+export type ScoreDeduction = z.infer<typeof scoreDeductionSchema>;
 export type Token2022ExtensionAuthority = z.infer<
   typeof token2022ExtensionAuthoritySchema
 >;

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { calculateM1Score } from "./scoring";
 import { buildConcentrationReport, formatPercentFromRaw, type LargestTokenAccountInput } from "./concentration";
 import type { MintInspection } from "./schemas";
 
@@ -162,12 +161,10 @@ describe("buildConcentrationReport", () => {
     expect(report.limitations.join(" ")).toContain("malformed");
   });
 
-  it("does not alter the M4 score", () => {
-    const scoreBefore = calculateM1Score(null);
-    buildConcentrationReport(mint("1000"), [account(1, "100", "OwnerA")]);
-    const scoreAfter = calculateM1Score(null);
+  it("does not produce score fields directly", () => {
+    const report = buildConcentrationReport(mint("1000"), [account(1, "100", "OwnerA")]);
 
-    expect(scoreAfter).toEqual(scoreBefore);
+    expect("score" in report).toBe(false);
   });
 
   it("does not claim unique people or holder identities", () => {
