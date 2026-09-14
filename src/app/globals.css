@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f3ea;
-  --foreground: #0f172a;
+  --background: #05070d;
+  --foreground: #eef4ff;
 }
 
 @theme inline {
@@ -12,13 +12,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html,
+body {
+  max-width: 100%;
+}
+
 * {
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
-  background: var(--background);
+  background:
+    radial-gradient(circle at 15% 0%, rgba(20, 184, 166, 0.13), transparent 26rem),
+    radial-gradient(circle at 82% 4%, rgba(99, 102, 241, 0.12), transparent 28rem),
+    linear-gradient(180deg, #05070d 0%, #080d16 46%, #05070d 100%);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -26,4 +38,32 @@ body {
 button,
 input {
   font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+summary:focus-visible,
+details:focus-visible {
+  outline: 2px solid #5eead4;
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(94, 234, 212, 0.28);
+}
+
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
