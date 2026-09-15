@@ -1,4 +1,4 @@
-# V1 Data Model
+# Data Model
 
 ## Token Program
 
@@ -15,39 +15,46 @@ Supported values:
 The mint inspection result contains:
 
 - `mintAddress`: canonical public key string.
-- `accountExists`: whether RPC found an account at the mint address.
+- `accountExists`: whether RPC found an account at the address.
 - `tokenProgram`: recognized token program or unknown.
 - `decimals`: parsed token decimals, if available.
 - `supply`: current supply from RPC, using raw integer amount and optional UI amount string.
-- `mintAuthority`: observed mint authority address or null.
-- `mintAuthorityRevoked`: true when parsed mint data reports no mint authority.
-- `freezeAuthority`: observed freeze authority address or null.
-- `freezeAuthorityRevoked`: true when parsed mint data reports no freeze authority.
+- `mintAuthority`: observed standard mint authority address or null.
+- `mintAuthorityRevoked`: true when parsed mint data reports no standard mint authority.
+- `freezeAuthority`: observed standard freeze authority address or null.
+- `freezeAuthorityRevoked`: true when parsed mint data reports no standard freeze authority.
+- `extensions`: parsed Token-2022 extension observations when standard RPC exposes them.
 
 ## Authority Analysis
 
-M2 adds `authorityAnalysis`:
+`authorityAnalysis` contains:
 
 - `scope`: `legacy-spl-token`, `token-2022`, or `unsupported`.
-- `summary`: plain-English authority summary.
+- `summary`: factual plain-English authority summary.
 - `standardAuthorities`: mint authority and freeze authority observations.
 - `token2022Extensions`: parsed Token-2022 extension authority observations when available.
 - `limitations`: authority-specific limitations, especially for Token-2022.
 
+Authority observations do not prove intent.
+
 ## Concentration Metrics
 
-M3 adds `concentration`:
+`concentration` contains:
 
-- `tokenAccountConcentration`: top 5, top 10, and top 20 largest token-account concentration.
-- `resolvedOwnerConcentration`: top 5, top 10, and top 20 resolved-owner concentration when owner resolution is sufficiently reliable.
+- `tokenAccountConcentration`: Top-5, Top-10, and Top-20 largest token-account concentration.
+- `resolvedOwnerConcentration`: Top-5, Top-10, and Top-20 resolved-owner concentration when owner resolution is sufficiently reliable.
 - `resolution`: sampled account counts, unresolved counts, sampled-balance coverage, and owner-resolution quality.
 - `limitations`: explicit methodology limitations.
 
-The app must not label largest token accounts as largest unique people or verified owner identities. Owner resolution aggregates blockchain owner addresses; it does not identify real-world entities.
+Largest token accounts are not labeled as unique people or verified holder identities. Owner resolution aggregates blockchain owner addresses; it does not identify real-world entities.
 
 ## Transparent Scoring
 
-M4 adds `score`:
+`score` is either an `IntelScore` object or `null`.
+
+A null score means no valid XGEN Intel Score was produced. It does not mean score `0`, safe, unsafe, low risk, high risk, positive evidence, or negative evidence.
+
+When present, `score` contains:
 
 - `methodologyVersion`: currently `1.0.0`.
 - `baseline`: always `100`.
@@ -56,4 +63,8 @@ M4 adds `score`:
 - `value`: `baseline - totalDeductions`, clamped to `0-100`.
 - `band`: plain-language band describing observed risk characteristics.
 
-M4 also adds `analysisCoverage`, which is separate from `score` and records missing, unsupported, or incomplete analysis surfaces.
+## Analysis Coverage
+
+`analysisCoverage` is separate from `score`. It records whether intended analysis surfaces were complete, partial, or limited.
+
+Missing or unsupported information reduces coverage and must not be silently converted into a score deduction.

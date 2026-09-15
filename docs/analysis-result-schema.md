@@ -1,6 +1,6 @@
 # Analysis Result Schema
 
-M4 returns an `AnalysisResult` object.
+The API returns an `AnalysisResult` object.
 
 ```ts
 type AnalysisResult = {
@@ -13,12 +13,14 @@ type AnalysisResult = {
   mint: MintInspection | null;
   authorityAnalysis: AuthorityAnalysis | null;
   concentration: ConcentrationReport;
-  score: IntelScore;
+  score: IntelScore | null;
   analysisCoverage: AnalysisCoverage;
   riskSignals: ObservableSignal[];
   limitations: string[];
 };
 ```
+
+`version: "m4"` is the current internal response-shape marker. It is not the application release version and is not the scoring methodology version.
 
 ## IntelScore
 
@@ -48,6 +50,14 @@ Every score deduction includes:
 - a plain-English explanation;
 - the source field and value used as evidence.
 
+## UNSCORED Results
+
+`score: null` means no valid XGEN Intel Score was produced.
+
+Examples include malformed input, unsupported/non-mint accounts, and results where the application cannot establish a valid scorable mint target.
+
+A null score is not score `0` and is not a risk classification.
+
 ## AnalysisCoverage
 
 ```ts
@@ -58,13 +68,13 @@ type AnalysisCoverage = {
 };
 ```
 
-Coverage describes which intended M4 analysis surfaces were inspected. Missing or unsupported information affects coverage and must not be silently converted into a risk deduction.
+Coverage describes which intended analysis surfaces were inspected. Missing or unsupported information affects coverage and must not be silently converted into a risk deduction.
 
 ## Concentration
 
-Concentration keeps the M3 distinction between:
+Concentration keeps the distinction between:
 
 - token-account concentration, calculated directly from the largest token accounts returned by RPC;
 - resolved-owner concentration, calculated only when sampled token-account owners are resolved with sufficient quality.
 
-Only reliable resolved-owner concentration can affect the M4 score.
+Only reliable resolved-owner concentration can affect score in methodology `1.0.0`.

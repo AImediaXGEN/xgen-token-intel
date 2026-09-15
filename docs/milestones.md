@@ -1,4 +1,6 @@
-# Milestone Plan
+# Milestone History
+
+This file records development milestones. It is historical project context, not the primary public product specification. Public behavior is documented in `README.md` and the current technical docs.
 
 ## M1 - Project Foundation + Read-Only Mint Inspection
 
@@ -18,24 +20,28 @@
 ## M3 - Token-Account Concentration Analysis
 
 - Use `getTokenLargestAccounts` with careful labeling.
-- Optionally resolve owners for returned token accounts.
+- Resolve owners for returned token accounts where parsed RPC data supports it.
 - Distinguish token accounts from owner wallets and program-owned accounts.
 
 ## M4 - Transparent Scoring Engine
 
 - Add documented scoring adjustments.
 - Ensure every score delta maps to a visible condition.
+- Freeze XGEN Intel Score methodology `1.0.0`.
 
 ## M5 - Polished XGEN UI
 
 - Improve report layout, empty states, accessibility, and mobile behavior.
 
-## M6 - Adversarial/Data-Accuracy Testing + Documentation
+## M6 - Adversarial/Data-Accuracy Testing + Hardening
 
-- Add fixtures for invalid addresses, unsupported accounts, unusual decimals, active authorities, revoked authorities, and concentration edge cases.
-- Document interpretation limits.
+- Add fixtures for invalid addresses, unsupported accounts, unusual authority states, Token-2022 limitations, and concentration edge cases.
+- Preserve `score: null` semantics for unscored results.
+- Harden RPC error sanitization.
 
-## M7 - Public GitHub Release
+## M7 - Public Release Readiness
 
-- Prepare public README, license, contribution notes, and release checklist.
-- Create/push GitHub repository only after human review.
+- Prepare public README and documentation.
+- Audit secret history and local artifacts.
+- Verify reproducible install/test/build from tracked artifacts only.
+- Do not create/push GitHub repository until separate human authorization.

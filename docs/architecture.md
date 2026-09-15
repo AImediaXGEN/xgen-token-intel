@@ -1,16 +1,26 @@
-# XGEN Token Intel Architecture
+# Architecture
 
 XGEN Token Intel is a standalone, read-only Solana token intelligence application.
 
-Core philosophy: "Don't trust. Verify."
+Core philosophy: **Don't trust. Verify.**
 
 ## Product Boundary
 
-V1 is read-only by design. It does not connect wallets, request permissions, sign messages, sign transactions, submit transactions, ask for private keys, offer swaps, trading, custody, lending, token locking, or definitive scam/safe labels.
+The application accepts a Solana token mint address and returns a human-readable report from observable RPC data.
 
-The app accepts a Solana token mint address and produces a human-readable report from observable RPC data.
+It does not connect wallets, request wallet permissions, sign messages, sign transactions, submit transactions, ask for private keys or seed phrases, offer swaps, trade, custody assets, lend, lock tokens, or classify tokens as safe or scams.
 
-## Recommended V1 Stack
+## Runtime Flow
+
+```text
+Browser
+  -> Next.js server route: /api/analyze
+  -> read-only Solana RPC endpoint
+```
+
+The browser does not need a provider API key. Credential-bearing RPC URLs must be configured server-side with `SOLANA_RPC_URL`.
+
+## Stack
 
 - TypeScript
 - Next.js App Router
@@ -21,29 +31,33 @@ The app accepts a Solana token mint address and produces a human-readable report
 - Vitest for unit tests
 - pnpm for package management
 
-No paid APIs or third-party token-risk APIs are included in V1.
+No paid intelligence APIs or third-party token-risk APIs are included.
 
 ## Module Boundaries
 
-- `src/lib/solana`: Solana RPC configuration, read-only client creation, token program IDs, low-level account fetching, and owner resolution from parsed token accounts.
-- `src/lib/intel`: application data schemas, mint analysis, authority analysis, concentration analysis, observable risk signals, analysis coverage, and transparent scoring.
-- `src/app/api`: server routes that expose analysis results to the UI without exposing RPC implementation details.
-- `src/components`: presentation components only.
-- `docs`: architecture, data model, authority model, concentration model, scoring method, RPC limitations, and milestone plan.
+- `src/app`: app entry points and the `/api/analyze` server route.
+- `src/components`: presentation-only React components.
+- `src/lib/solana`: Solana program IDs, RPC configuration, read-only connection creation, public-key parsing, token-account fetching, and parsed owner resolution.
+- `src/lib/intel`: analysis schemas, mint analysis, authority analysis, concentration analysis, scoring, and deterministic tests.
+- `docs`: public technical documentation and milestone history.
 
-## Provider Model
+Blockchain/RPC access is kept separate from analysis logic, scoring logic, and presentation code so future read-only providers can be added without rewriting the core application.
 
-The analysis layer should accept provider-shaped inputs instead of hard-coding every source into UI components. M4 uses standard Solana RPC only. Future providers can add metadata, liquidity, governance, historical behavior, binary Token-2022 extension decoding, or entity identification later, but each provider must preserve the read-only boundary and clearly identify its data source.
+## Analysis Scope
 
-## M4 Scope
+Current release scope includes:
 
-M4 implements:
+- Mint/account validation
+- Legacy SPL Token and Token-2022 identification
+- Decimals and supply
+- Standard mint authority and freeze authority
+- Selected Token-2022 extension observations when parsed RPC exposes them
+- Token-account concentration
+- Resolved-owner concentration when resolution quality is defensible
+- XGEN Intel Score methodology `1.0.0`
+- Analysis Coverage
+- UNSCORED results for invalid or unsupported targets
 
-- Deterministic XGEN Intel Score methodology `1.0.0`.
-- A 100-point baseline with documented deductions only.
-- Standard mint authority and freeze authority score deductions when active.
-- Resolved-owner concentration deductions only when M3 resolution quality is sufficient.
-- Separate analysis coverage reporting for missing, unsupported, or incomplete analysis surfaces.
-- Explicit Token-2022 coverage limitation when extension authority surfaces are not comprehensively inspected.
+## Out of Scope
 
-M4 does not implement market data, liquidity analysis, LP analysis, entity labeling, wallet connectivity, transaction signing, blockchain writes, public GitHub release, or M5 UI polish.
+The application does not implement market data, market cap, liquidity analysis, LP analysis, metadata/social scoring, wallet connectivity, transaction signing, blockchain writes, public entity labels, or AI scoring.
