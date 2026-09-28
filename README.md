@@ -1,5 +1,7 @@
 # XGEN Token Intel
 
+[![CI](https://github.com/AImediaXGEN/xgen-token-intel/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AImediaXGEN/xgen-token-intel/actions/workflows/ci.yml?query=branch%3Amain)
+
 **DON'T TRUST. VERIFY.**
 
 XGEN Token Intel is a read-only Solana token intelligence tool for the XGENVERSE / XGEN "Decentralize Everything" mission. It analyzes observable on-chain token characteristics using standard Solana RPC data and produces a transparent human-readable report.
